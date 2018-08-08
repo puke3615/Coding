@@ -33,7 +33,7 @@ class LSTMModel:
     def build_model(self):
         self.model = Sequential()
         self.model.add(Embedding(self.n_words + 2, self.n_embedding, input_length=self.maxlen))
-        self.model.add(LSTM(512, return_sequences=True))
+        # self.model.add(LSTM(512, return_sequences=True))
         self.model.add(LSTM(512))
         self.model.add(Dense(self.n_words + 2, activation='softmax'))
         self.model.summary()
@@ -73,7 +73,7 @@ class LSTMModel:
                 break
             result.append(output)
             input = np.array([input[0][1:].tolist() + [output]])
-            current += ' ' + to_word(output, words)
+            current += v_join + to_word(output, words)
             sys.stdout.write('\r' + current)
         print()
         return result
@@ -84,13 +84,15 @@ n_generate = 1
 maxlen = 100
 n_words = 2000
 n_embedding = 50
-weight = 'data/model.h5'
+# weight = 'data/model.h5'
+weight = 'data/{epoch:02d}-{loss:4f}.hdf5'
 load_model = True
 step = 1
 max_file = 10
 batch_size = 32
 epochs = 100
-PATH = '/Users/puke/Documents/workSpace/PyCharm/Coding'
+v_join = ''
+PATH = './'
 
 if __name__ == '__main__':
     X, Y, words = load_data(PATH, n_words, maxlen, step, max_file)

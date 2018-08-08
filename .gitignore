@@ -2,3 +2,4 @@ data/
 logs/
 *.pyc
 .idea/
+.DS_Store

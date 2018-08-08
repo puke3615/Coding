@@ -90,7 +90,8 @@ def load_data(path=PATH, n_words=2000, maxlen=100, step=1, max_file=None):
 
 
 def text_2_words(text):
-    return text.split(' ')
+    # return text.split(' ')
+    return list(text)
 
 
 def to_words(indexes, words, v_padding='å'):

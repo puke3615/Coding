@@ -89,7 +89,7 @@ def load_data(path=PATH, n_words=2000, maxlen=100, step=1, max_file=None, postfi
     from keras.preprocessing import sequence
     from keras.utils import np_utils
     X = sequence.pad_sequences(x, maxlen=maxlen, value=v_padding)
-    Y = np_utils.to_categorical(y)
+    Y = np_utils.to_categorical(y, n_words + 2)
 
     return X, Y, words
 

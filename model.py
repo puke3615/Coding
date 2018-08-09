@@ -6,6 +6,10 @@ from data_reader import *
 import os
 
 
+def choose_result_by_best(predict):
+    return np.argmax(predict)
+
+
 def choose_result_by_prob(predict):
     # 取词逻辑
     # 将predict累加求和
@@ -51,23 +55,25 @@ class LSTMModel:
             TensorBoard(),
         ], **kwargs)
 
-    def generate(self, words, starts=None):
+    def generate(self, words, maxlen, starts=None, choose_best=False, v_join=''):
         header = []
         if starts:
-            items = [text_2_words(starts)]
+            items = [text_2_words(starts)[0]]
             for item in items:
                 if item not in words:
                     raise Exception('Words not contains % s' % item)
                 header.append(words.index(item))
         current = starts or ''
         result = header[:]
-        input = sequence.pad_sequences([header], maxlen=maxlen, value=len(words))
+        n_words = len(words)
+        input = sequence.pad_sequences([header], maxlen=maxlen, value=n_words)
         while True:
             outputs = self.model.predict(input)[0]
-            output = choose_result_by_prob(outputs)
-            if output == n_words:
-                # 占位符重新生成
-                continue
+            choose = lambda: choose_result_by_best(outputs) if choose_best else choose_result_by_prob(outputs)
+            output = choose()
+            while output == n_words:
+                # 占位符重新选择
+                output = choose()
             if output == n_words + 1:
                 # 结束符完毕
                 break
@@ -80,26 +86,31 @@ class LSTMModel:
 
 
 train = True
+choose_best = True
 n_generate = 1
-maxlen = 100
+maxlen = 200
 n_words = 2000
 n_embedding = 50
-# weight = 'data/model.h5'
-weight = 'data/{epoch:02d}-{loss:4f}.hdf5'
+# weight = 'data/100-0.024574.hdf5'
+# weight = 'data/{epoch:02d}-{loss:4f}.hdf5'
+weight = 'data/model.hdf5'
 load_model = True
 step = 1
 max_file = 10
 batch_size = 32
 epochs = 100
 v_join = ''
-PATH = './'
+# PATH = './'
+# PATH = './data'
+PATH = '../LSTMDemo/data'
+postfix = '.txt'
 
 if __name__ == '__main__':
-    X, Y, words = load_data(PATH, n_words, maxlen, step, max_file)
+    X, Y, words = load_data(PATH, n_words, maxlen, step, max_file, postfix)
     model = LSTMModel(maxlen, len(words), n_embedding, weight, load_model)
     if train:
         model.train(X, Y, batch_size=batch_size, epochs=epochs)
     else:
         print('\nGenerated:')
         for _ in range(n_generate):
-            model.generate(words, '')
+            model.generate(words, maxlen, '', choose_best, v_join)

@@ -22,8 +22,8 @@ def get_all_files(path, file_selector=lambda filepath: True, dir_selector=lambda
     return result
 
 
-def load_data(path=PATH, n_words=2000, maxlen=100, step=1, max_file=None):
-    files = get_all_files(path, file_selector=lambda filepath: filepath.endswith('.py'),
+def load_data(path=PATH, n_words=2000, maxlen=100, step=1, max_file=None, postfix='.py'):
+    files = get_all_files(path, file_selector=lambda filepath: filepath.endswith(postfix),
                           dir_selector=lambda dirpath: os.path.basename(dirpath) not in ['.git'])
     n_files = len(files)
     if max_file:
@@ -54,7 +54,7 @@ def load_data(path=PATH, n_words=2000, maxlen=100, step=1, max_file=None):
     n_all_words = len(counter)
     counter = dict(counter.most_common(n_words))
     n_words = len(counter)
-    words = list(sorted(counter, key=lambda x: -counter[x]))
+    words = list(sorted(counter, key=lambda w: '%05d_%s' % (counter[w], w), reverse=True))
     print('Total %d words, select %d words.' % (n_all_words, len(counter)))
 
     # print(counter)
@@ -96,7 +96,7 @@ def text_2_words(text):
 
 def to_words(indexes, words, v_padding='å'):
     mapping = lambda i: to_word(i, words, v_padding)
-    return ' '.join(map(mapping, indexes))
+    return ''.join(map(mapping, indexes))
 
 
 def to_word(index, words, v_padding='å'):
@@ -104,6 +104,9 @@ def to_word(index, words, v_padding='å'):
 
 
 if __name__ == '__main__':
-    X, Y, words = load_data(max_file=10)
+    X, Y, words = load_data('data/', max_file=10, maxlen=20)
     print('X.shape = %s' % str(X.shape))
     print('Y.shape = %s' % str(Y.shape))
+    x_data = [to_words(x, words) for x in X]
+    # print('\n'.join(x_data))
+    print(words)

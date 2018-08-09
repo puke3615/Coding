@@ -84,6 +84,7 @@ def load_data(path=PATH, n_words=2000, maxlen=100, step=1, max_file=None, postfi
     if max_data:
         x, y = x[:max_data], y[:max_data]
 
+    print('Total %d data.' % len(x))
     print('Preprocess...')
     from keras.preprocessing import sequence
     from keras.utils import np_utils

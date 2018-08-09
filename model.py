@@ -96,7 +96,8 @@ n_embedding = 50
 weight = 'data/model.hdf5'
 load_model = True
 step = 1
-max_file = 10
+max_file = 1
+max_data = 50000
 batch_size = 32
 epochs = 100
 v_join = ''
@@ -106,7 +107,7 @@ PATH = '../LSTMDemo/data'
 postfix = '.txt'
 
 if __name__ == '__main__':
-    X, Y, words = load_data(PATH, n_words, maxlen, step, max_file, postfix)
+    X, Y, words = load_data(PATH, n_words, maxlen, step, max_file, postfix, max_data)
     model = LSTMModel(maxlen, len(words), n_embedding, weight, load_model)
     if train:
         model.train(X, Y, batch_size=batch_size, epochs=epochs)

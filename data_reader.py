@@ -22,7 +22,7 @@ def get_all_files(path, file_selector=lambda filepath: True, dir_selector=lambda
     return result
 
 
-def load_data(path=PATH, n_words=2000, maxlen=100, step=1, max_file=None, postfix='.py'):
+def load_data(path=PATH, n_words=2000, maxlen=100, step=1, max_file=None, postfix='.py', max_data=None):
     files = get_all_files(path, file_selector=lambda filepath: filepath.endswith(postfix),
                           dir_selector=lambda dirpath: os.path.basename(dirpath) not in ['.git'])
     n_files = len(files)
@@ -67,6 +67,7 @@ def load_data(path=PATH, n_words=2000, maxlen=100, step=1, max_file=None, postfi
 
     x = []
     y = []
+
     for f, file_words in enumerate(all_file_words):
         current = f + 1
         total = len(all_file_words)
@@ -79,6 +80,9 @@ def load_data(path=PATH, n_words=2000, maxlen=100, step=1, max_file=None, postfi
             x.append(input)
             y.append(output)
     print()
+
+    if max_data:
+        x, y = x[:max_data], y[:max_data]
 
     print('Preprocess...')
     from keras.preprocessing import sequence

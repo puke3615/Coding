@@ -2,6 +2,7 @@ from keras.preprocessing import sequence
 from keras.callbacks import *
 from keras.models import *
 from keras.layers import *
+from text import *
 from data_reader import *
 import os
 
@@ -37,8 +38,7 @@ class LSTMModel:
     def build_model(self):
         self.model = Sequential()
         self.model.add(Embedding(self.n_words + 2, self.n_embedding, input_length=self.maxlen))
-        # self.model.add(LSTM(512, return_sequences=True))
-        self.model.add(LSTM(512))
+        self.model.add(LSTM(1024))
         self.model.add(Dense(self.n_words + 2, activation='softmax'))
         self.model.summary()
         self.model.compile('adam', 'categorical_crossentropy', metrics=['acc'])
@@ -51,6 +51,13 @@ class LSTMModel:
     def train(self, X, Y, **kwargs):
         print('Start train:')
         self.model.fit(X, Y, callbacks=[
+            ModelCheckpoint(self.weight),
+            TensorBoard(),
+        ], **kwargs)
+
+    def train_generator(self, generator, steps_one_epoch, epochs, **kwargs):
+        print('Start train:')
+        self.model.fit_generator(generator, steps_one_epoch, epochs, callbacks=[
             ModelCheckpoint(self.weight),
             TensorBoard(),
         ], **kwargs)
@@ -85,7 +92,7 @@ class LSTMModel:
         return result
 
 
-train = True
+train = False
 choose_best = False
 n_generate = 1
 maxlen = 200
@@ -107,10 +114,28 @@ PATH = './data'
 postfix = '.txt'
 
 if __name__ == '__main__':
-    X, Y, words = load_data(PATH, n_words, maxlen, step, max_file, postfix, max_data)
+    dataset = Dataset(
+        PATH,
+        maxlen=maxlen,
+        sep='\n\n',
+        max_words=n_words,
+        postfix=[postfix],
+        batch_size=batch_size,
+        # max_data=1000,
+    )
+    generator = dataset.load_data(False)
+    steps_one_epoch = next(generator)
+    words = dataset.words
+
+    # X, Y, words = load_data(PATH, n_words, maxlen, step, max_file, postfix, max_data)
     model = LSTMModel(maxlen, len(words), n_embedding, weight, load_model)
     if train:
-        model.train(X, Y, batch_size=batch_size, epochs=epochs)
+        # model.train(X, Y, batch_size=batch_size, epochs=epochs)
+        model.model.fit_generator(
+            generator,
+            steps_per_epoch=steps_one_epoch,
+            epochs=epochs,
+        )
     else:
         print('\nGenerated:')
         for _ in range(n_generate):

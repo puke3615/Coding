@@ -63,7 +63,8 @@ def words_cmp(a, b):
 
 
 class Dataset:
-    def __init__(self, path, maxlen, batch_size=32, seed=None, step=1, sep=None, max_words=None, max_data=None,
+    def __init__(self, path, maxlen, batch_size=32, seed=None, step=1, sep=None, min_freq=None, max_words=None,
+                 max_data=None,
                  postfix=None, max_file=None, ignore_file=None, ignore_dir=None, ignore_file_error=True,
                  file_selector=None, dir_selector=None, word_parser=None):
         self.path = path
@@ -72,6 +73,7 @@ class Dataset:
         self.seed = seed
         self.step = step
         self.sep = sep
+        self.min_freq = min_freq
         self.max_words = max_words
         self.max_data = max_data
         self.postfix = postfix
@@ -86,6 +88,7 @@ class Dataset:
         self.index_padding = None
         self.index_end = None
         self.words = None
+        self.word2index = None
 
     def load_data(self, show_mapping_progress=False):
 
@@ -133,13 +136,17 @@ class Dataset:
         n_all_words = len(counter)
         if self.max_words:
             counter = counter.most_common(self.max_words)
+        counter = dict(counter)
+        if self.min_freq:
+            counter = dict({k: v for k, v in counter.items() if v >= self.min_freq})
         self.n_words = len(counter)
         print('Found %d words, select %d words.' % (n_all_words, self.n_words))
 
         import functools
         # self.words = list(sorted(counter, key=functools.cmp_to_key(words_cmp)))
-        self.words = list(map(lambda x: x[0], sorted(counter, key=functools.cmp_to_key(words_cmp))))
-        # self.words = list(sorted(counter, key=lambda w: '%09d_%s' % (counter[w], w), reverse=True))
+        # self.words = list(map(lambda x: x[0], sorted(counter, key=functools.cmp_to_key(words_cmp))))
+        self.words = list(sorted(counter, key=lambda w: '%09d_%s' % (counter[w], w), reverse=True))
+        self.word2index = {w: i for i, w in enumerate(self.words)}
 
         self.index_padding = self.n_words
         self.index_end = self.n_words + 1
@@ -148,7 +155,9 @@ class Dataset:
         index = 0
         n_origin_data = sum(map(len, origin_data)) + len(origin_data)
         n_data = min(self.max_data, n_origin_data) if self.max_data else n_origin_data
-        get_index = lambda word: self.words.index(word) if word in self.words else self.index_padding
+        print('Total %d data, select %d data.' % (n_origin_data, n_data))
+
+        get_index = lambda word: self.word2index[word] if word in self.words else self.index_padding
         for items in origin_data:
             n_items = len(items)
             for i in range(0, n_items + 1, self.step):
@@ -160,8 +169,8 @@ class Dataset:
                 if show_mapping_progress:
                     show_progress(index + 1, n_origin_data, 'Mapping data',
                                   )
-                                  # input_words)
-                                  # '%s ==> %s' % (str(input_words), str(input)))
+                    # input_words)
+                    # '%s ==> %s' % (str(input_words), str(input)))
                 xy.append((input, output))
                 index += 1
         show_mapping_progress and print()
@@ -171,8 +180,6 @@ class Dataset:
             np.random.seed(self.seed)
         np.random.shuffle(xy)
 
-        n_data = min(self.max_data, len(xy)) if self.max_data else len(xy)
-        print('Total %d data, select %d data.' % (len(xy), n_data))
         if n_data < self.batch_size:
             raise Exception('Too few data.')
 
@@ -182,7 +189,7 @@ class Dataset:
         yield steps_per_epoch
         epoch = 1
         while True:
-            print('>>>Load data on epoch %d <<<' % epoch)
+            # print('\n>>>Load data on epoch %d <<<' % epoch)
             flags = list(range(n_data))
             for step in range(steps_per_epoch):
                 choose = np.random.choice(flags, self.batch_size, replace=False)

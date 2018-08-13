@@ -38,15 +38,23 @@ class LSTMModel:
     def build_model(self):
         self.model = Sequential()
         self.model.add(Embedding(self.n_words + 2, self.n_embedding, input_length=self.maxlen))
-        self.model.add(LSTM(1024))
+        self.model.add(BatchNormalization())
+        # self.model.add(LSTM(512, return_sequences=True))
+        # self.model.add(BatchNormalization())
+        self.model.add(LSTM(512, return_sequences=False))
+        self.model.add(BatchNormalization())
+        self.model.add(Dense(1024, activation='relu'))
+        self.model.add(BatchNormalization())
         self.model.add(Dense(self.n_words + 2, activation='softmax'))
         self.model.summary()
-        self.model.compile('adam', 'categorical_crossentropy', metrics=['acc'])
+        self.model.compile('rmsprop', 'categorical_crossentropy', metrics=['acc'])
         if self.load_model \
                 and self.weight \
                 and os.path.isfile(self.weight):
             self.model.load_weights(self.weight)
             print('Load model parameter successfully.')
+        else:
+            print('No model parameter found.')
 
     def train(self, X, Y, **kwargs):
         print('Start train:')
@@ -78,9 +86,16 @@ class LSTMModel:
             outputs = self.model.predict(input)[0]
             choose = lambda: choose_result_by_best(outputs) if choose_best else choose_result_by_prob(outputs)
             output = choose()
+            choose_times = 0
+            max_choose_times = 10
             while output == n_words:
+                if choose_times >= max_choose_times - 1:
+                    break
                 # 占位符重新选择
                 output = choose()
+                choose_times += 1
+            if choose_times == max_choose_times:
+                continue
             if output == n_words + 1:
                 # 结束符完毕
                 break
@@ -94,17 +109,18 @@ class LSTMModel:
 
 train = False
 choose_best = False
-n_generate = 1
-maxlen = 200
+n_generate = 100
+maxlen = 32
 n_words = 2000
+min_freq = 20
 n_embedding = 50
 # weight = 'data/100-0.024574.hdf5'
 # weight = 'data/{epoch:02d}-{loss:4f}.hdf5'
 weight = 'data/model.hdf5'
 load_model = True
 step = 1
-max_file = 1
-max_data = 50000
+max_file = None
+max_data = None
 batch_size = 32
 epochs = 100
 v_join = ''
@@ -118,22 +134,26 @@ if __name__ == '__main__':
         PATH,
         maxlen=maxlen,
         sep='\n\n',
+        step=step,
         max_words=n_words,
         postfix=[postfix],
         batch_size=batch_size,
-        # max_data=1000,
+        max_data=max_data,
+        min_freq=min_freq,
     )
-    generator = dataset.load_data(False)
+    generator = dataset.load_data(True)
     steps_one_epoch = next(generator)
     words = dataset.words
+    print(words)
+    # exit(0)
 
     # X, Y, words = load_data(PATH, n_words, maxlen, step, max_file, postfix, max_data)
     model = LSTMModel(maxlen, len(words), n_embedding, weight, load_model)
     if train:
         # model.train(X, Y, batch_size=batch_size, epochs=epochs)
-        model.model.fit_generator(
+        model.train_generator(
             generator,
-            steps_per_epoch=steps_one_epoch,
+            steps_one_epoch=steps_one_epoch // 100,
             epochs=epochs,
         )
     else:

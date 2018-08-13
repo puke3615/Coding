@@ -85,8 +85,8 @@ class LSTMModel:
         return result
 
 
-train = True
-choose_best = False
+train = False
+choose_best = True
 n_generate = 1
 maxlen = 200
 n_words = 2000
@@ -97,7 +97,7 @@ weight = 'data/model.hdf5'
 load_model = True
 step = 1
 max_file = 1
-max_data = 50000
+max_data = 1000
 batch_size = 32
 epochs = 100
 v_join = ''
